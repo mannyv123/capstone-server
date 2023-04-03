@@ -8,6 +8,11 @@ exports.up = function (knex) {
         table.string("username").notNullable();
         table.string("password").notNullable();
         table.string("email").notNullable();
+        table.string("profileImg").notNullable();
+        table.string("name").notNullable();
+        table.string("about");
+        table.string("setup");
+        table.timestamps(true, true);
     });
 };
 
@@ -15,4 +20,6 @@ exports.up = function (knex) {
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-exports.down = function (knex) {};
+exports.down = function (knex) {
+    return knex.schema.dropTable("users");
+};
