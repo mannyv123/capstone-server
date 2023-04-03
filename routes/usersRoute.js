@@ -9,12 +9,13 @@ const storage = multer.diskStorage({
         callback(null, "public/images/");
     },
     filename: (req, file, callback) => {
-        callback(null, uuidv4());
+        callback(null, `${uuidv4()}.${file.mimetype.split("/")[1]}`);
     },
     limits: { fieldSize: 10 * 1024 * 1024 },
 });
 const upload = multer({ storage });
 
 router.route("/").post(upload.single("profileImg"), usersController.createUser);
+router.route("/:username").get(usersController.getUser);
 
 module.exports = router;
