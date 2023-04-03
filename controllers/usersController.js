@@ -15,7 +15,17 @@ exports.createUser = async (req, res) => {
         res.status(200).location(newUserUrl).send(result);
         console.log(result);
     } catch (error) {
-        res.status(400).send(`Error creating user: ${error}`);
+        res.status(400).send(`Error creating user: ${error}`); //update error code and response
         console.log(error);
+    }
+};
+
+//GET endpoint to get user info
+exports.getUser = async (req, res) => {
+    try {
+        const result = await knex("users").where({ username: req.params.username });
+        res.status(200).send(result);
+    } catch (error) {
+        res.status(400).send(`Error getting user: ${error}`); //update error code and response
     }
 };
