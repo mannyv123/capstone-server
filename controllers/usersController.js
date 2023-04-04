@@ -29,3 +29,16 @@ exports.getUser = async (req, res) => {
         res.status(400).send(`Error getting user: ${error}`); //update error code and response
     }
 };
+
+//GET endpoint to get user posts
+exports.getPosts = async (req, res) => {
+    try {
+        console.log("req body: ", req.body);
+        const result = await knex("posts").where({ user_id: req.params.username });
+        res.status(200).send(result);
+        console.log("result: ", result);
+    } catch (error) {
+        res.status(400).send(`Error getting user posts: ${error}`); //update error code and response
+        console.error(error);
+    }
+};
