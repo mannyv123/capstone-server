@@ -1,0 +1,32 @@
+module.exports = [
+    {
+        id: "174875ee-e638-4dea-9857-40f861c9774c",
+        username: "user1",
+        password: "password1",
+        email: "1something@something.com",
+        profileImg: "/images/744875ee-e638-4dea-9857-40f861c9774c.jpeg",
+        name: "user 1",
+        about: "this is about user 1",
+        setup: "this is user 1's setup",
+    },
+    {
+        id: "184875ee-e638-4dea-9857-40f861c9774c",
+        username: "user2",
+        password: "password2",
+        email: "2something@something.com",
+        profileImg: "/images/744875ee-e638-4dea-9857-40f861c9774c.jpeg",
+        name: "user 2",
+        about: "this is about user 2",
+        setup: "this is user 2's setup",
+    },
+    {
+        id: "194875ee-e638-4dea-9857-40f861c9774c",
+        username: "user3",
+        password: "password3",
+        email: "3something@something.com",
+        profileImg: "/images/744875ee-e638-4dea-9857-40f861c9774c.jpeg",
+        name: "user 3",
+        about: "this is about user 3",
+        setup: "this is user 3's setup",
+    },
+];
