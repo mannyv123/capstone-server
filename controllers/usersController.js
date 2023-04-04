@@ -31,18 +31,6 @@ exports.getUser = async (req, res) => {
 };
 
 //GET endpoint to get user posts
-// exports.getPosts = async (req, res) => {
-//     try {
-//         console.log("req body: ", req.body);
-//         const result = await knex("posts").where({ user_id: req.params.userId });
-//         res.status(200).send(result);
-//         console.log("result: ", result);
-//     } catch (error) {
-//         res.status(400).send(`Error getting user posts: ${error}`); //update error code and response
-//         console.error(error);
-//     }
-// };
-
 exports.getPosts = async (req, res) => {
     try {
         const result = await knex("posts")
@@ -61,5 +49,31 @@ exports.getPosts = async (req, res) => {
     } catch (error) {
         res.status(400).send(`Error getting user posts: ${error}`); //update error code and response
         console.error(error);
+    }
+};
+
+//POST endpoint to create user post
+exports.createPost = async (req, res) => {
+    const images = req.files;
+    try {
+        req.body.id = uuidv4();
+        req.body.user_id = req.params.userId;
+
+        console.log(req.files);
+        console.log(req.body);
+        // console.log(req.params.userId);
+
+        await knex("posts").insert(req.body);
+
+        const imageRecords = images.map((image) => ({
+            id: uuidv4(),
+            image: `/images/${image.filename}`,
+            post_id: req.body.id,
+        }));
+        await knex("post_images").insert(imageRecords);
+
+        res.status(201).send("records created");
+    } catch (error) {
+        console.log(error);
     }
 };
