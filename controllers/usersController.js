@@ -31,10 +31,31 @@ exports.getUser = async (req, res) => {
 };
 
 //GET endpoint to get user posts
+// exports.getPosts = async (req, res) => {
+//     try {
+//         console.log("req body: ", req.body);
+//         const result = await knex("posts").where({ user_id: req.params.userId });
+//         res.status(200).send(result);
+//         console.log("result: ", result);
+//     } catch (error) {
+//         res.status(400).send(`Error getting user posts: ${error}`); //update error code and response
+//         console.error(error);
+//     }
+// };
+
 exports.getPosts = async (req, res) => {
     try {
-        console.log("req body: ", req.body);
-        const result = await knex("posts").where({ user_id: req.params.username });
+        const result = await knex("posts")
+            .select(
+                "posts.id",
+                "posts.title",
+                "posts.description",
+                knex.raw("JSON_ARRAYAGG(post_images.image) as imageUrls")
+            )
+            .leftJoin("post_images", "posts.id", "post_images.post_id")
+            .groupBy("posts.id")
+            .where({ user_id: req.params.userId });
+
         res.status(200).send(result);
         console.log("result: ", result);
     } catch (error) {

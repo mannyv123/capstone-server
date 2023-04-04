@@ -17,6 +17,6 @@ const upload = multer({ storage });
 
 router.route("/").post(upload.single("profileImg"), usersController.createUser);
 router.route("/:username").get(usersController.getUser);
-router.route("/:username/posts").get(usersController.getPosts);
+router.route("/:userId/posts").get(usersController.getPosts);
 
 module.exports = router;
