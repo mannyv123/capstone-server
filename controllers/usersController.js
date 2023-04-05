@@ -21,13 +21,27 @@ exports.createUser = async (req, res) => {
     try {
         //need to add validation
 
+        //Add profile image to S3 bucket
+        const profileImageName = uuidv4();
+
+        const params = {
+            Bucket: bucketName,
+            Key: profileImageName,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype,
+        };
+
+        await s3.send(new PutObjectCommand(params));
+
+        //Add user to database
         req.body.id = uuidv4();
-        console.log("file", req.file);
-        console.log("body", req.body);
-        req.body.profileImg = `/images/${req.file.filename}`;
+
+        req.body.profileImg = profileImageName;
         const result = await knex("users").insert(req.body);
         const newUserUrl = `/users/${result.id}`;
         res.status(200).location(newUserUrl).send(result);
+        console.log("file", req.file);
+        console.log("body", req.body);
         console.log(result);
     } catch (error) {
         res.status(400).send(`Error creating user: ${error}`); //update error code and response
@@ -39,6 +53,14 @@ exports.createUser = async (req, res) => {
 exports.getUser = async (req, res) => {
     try {
         const result = await knex("users").where({ username: req.params.username });
+
+        const getObjectParams = {
+            Bucket: bucketName,
+            Key: result[0].profileImg,
+        };
+        const command = new GetObjectCommand(getObjectParams);
+        result[0].profileImgUrl = await getSignedUrl(s3, command, { expiresIn: 60 });
+        console.log(result);
         res.status(200).send(result);
     } catch (error) {
         res.status(400).send(`Error getting user: ${error}`); //update error code and response
