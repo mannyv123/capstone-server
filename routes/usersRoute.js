@@ -24,5 +24,6 @@ router
     .route("/:userId/posts")
     .get(usersController.getPosts)
     .post(upload.array("images"), usersController.createPost);
+router.route("/:userId/posts/:postId").delete(usersController.deletePost);
 
 module.exports = router;

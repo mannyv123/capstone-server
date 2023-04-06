@@ -1,6 +1,6 @@
 const knex = require("knex")(require("../knexfile"));
 const { v4: uuidv4 } = require("uuid");
-const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 const bucketName = process.env.BUCKET_NAME;
@@ -149,6 +149,41 @@ exports.createPost = async (req, res) => {
         await knex("post_images").insert(imageRecords);
 
         res.status(201).send("records created");
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+//DELETE endpoint to delete user post
+exports.deletePost = async (req, res) => {
+    try {
+        console.log("request body: ", req.body);
+        console.log("req.params: ", req.params);
+
+        //first find the post images in the database
+        const postImages = await knex("post_images").where({ post_id: req.params.postId });
+
+        console.log("post images to delete: ", postImages);
+
+        //Delete from S3
+        const imagesToDelete = postImages.map((image) => ({
+            Key: image.image,
+        }));
+
+        console.log("images to delete: ", imagesToDelete);
+
+        for (const image of imagesToDelete) {
+            const params = {
+                Bucket: bucketName,
+                Key: image.Key,
+            };
+            const command = new DeleteObjectCommand(params);
+            await s3.send(command);
+        }
+
+        const post = await knex("posts").delete().where({ id: req.params.postId });
+
+        res.send({ post });
     } catch (error) {
         console.log(error);
     }
