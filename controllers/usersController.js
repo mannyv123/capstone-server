@@ -1,18 +1,47 @@
 const knex = require("knex")(require("../knexfile"));
 const { v4: uuidv4 } = require("uuid");
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+
+const bucketName = process.env.BUCKET_NAME;
+const bucketRegion = process.env.BUCKET_REGION;
+const accessKey = process.env.ACCESS_KEY;
+const secretAccessKey = process.env.SECRET_ACCESS_KEY;
+
+const s3 = new S3Client({
+    credentials: {
+        accessKeyId: accessKey,
+        secretAccessKey: secretAccessKey,
+    },
+    region: bucketRegion,
+});
 
 //POST endpoint to create new user
 exports.createUser = async (req, res) => {
     try {
         //need to add validation
 
+        //Add profile image to S3 bucket
+        const profileImageName = uuidv4();
+
+        const params = {
+            Bucket: bucketName,
+            Key: profileImageName,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype,
+        };
+
+        await s3.send(new PutObjectCommand(params));
+
+        //Add user to database
         req.body.id = uuidv4();
-        console.log("file", req.file);
-        console.log("body", req.body);
-        req.body.profileImg = `/images/${req.file.filename}`;
+
+        req.body.profileImg = profileImageName;
         const result = await knex("users").insert(req.body);
         const newUserUrl = `/users/${result.id}`;
         res.status(200).location(newUserUrl).send(result);
+        console.log("file", req.file);
+        console.log("body", req.body);
         console.log(result);
     } catch (error) {
         res.status(400).send(`Error creating user: ${error}`); //update error code and response
@@ -24,6 +53,14 @@ exports.createUser = async (req, res) => {
 exports.getUser = async (req, res) => {
     try {
         const result = await knex("users").where({ username: req.params.username });
+
+        const getObjectParams = {
+            Bucket: bucketName,
+            Key: result[0].profileImg,
+        };
+        const command = new GetObjectCommand(getObjectParams);
+        result[0].profileImgUrl = await getSignedUrl(s3, command, { expiresIn: 60 });
+        console.log(result);
         res.status(200).send(result);
     } catch (error) {
         res.status(400).send(`Error getting user: ${error}`); //update error code and response
@@ -38,11 +75,27 @@ exports.getPosts = async (req, res) => {
                 "posts.id",
                 "posts.title",
                 "posts.description",
-                knex.raw("JSON_ARRAYAGG(post_images.image) as imageUrls")
+                "posts.user_id",
+                knex.raw("JSON_ARRAYAGG(post_images.image) as imageNames")
             )
             .leftJoin("post_images", "posts.id", "post_images.post_id")
             .groupBy("posts.id")
             .where({ user_id: req.params.userId });
+
+        for (const post of result) {
+            const imageUrls = [];
+            for (const imageName of post.imageNames) {
+                const getObjectParams = {
+                    Bucket: bucketName,
+                    Key: imageName,
+                };
+                const command = new GetObjectCommand(getObjectParams);
+                const url = await getSignedUrl(s3, command, { expiresIn: 60 });
+                imageUrls.push(url);
+            }
+
+            post.imageUrls = imageUrls;
+        }
 
         res.status(200).send(result);
         console.log("result: ", result);
@@ -63,16 +116,74 @@ exports.createPost = async (req, res) => {
         console.log(req.body);
         // console.log(req.params.userId);
 
+        const filenames = [];
+
+        const promises = images.map((file) => {
+            const params = {
+                Bucket: bucketName,
+                Key: uuidv4(),
+                Body: file.buffer,
+                ContentType: file.mimetype,
+            };
+            filenames.push(params.Key);
+            return s3.send(new PutObjectCommand(params));
+        });
+
+        console.log(promises);
+
+        await Promise.all(promises);
+        console.log("filenames: ", filenames);
         await knex("posts").insert(req.body);
 
-        const imageRecords = images.map((image) => ({
+        // const imageRecordss = images.map((image) => ({
+        //     id: uuidv4(),
+        //     image: `/images/${image.filename}`,
+        //     post_id: req.body.id,
+        // }));
+
+        const imageRecords = filenames.map((filename) => ({
             id: uuidv4(),
-            image: `/images/${image.filename}`,
+            image: filename,
             post_id: req.body.id,
         }));
         await knex("post_images").insert(imageRecords);
 
         res.status(201).send("records created");
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+//DELETE endpoint to delete user post
+exports.deletePost = async (req, res) => {
+    try {
+        console.log("request body: ", req.body);
+        console.log("req.params: ", req.params);
+
+        //first find the post images in the database
+        const postImages = await knex("post_images").where({ post_id: req.params.postId });
+
+        console.log("post images to delete: ", postImages);
+
+        //Delete from S3
+        const imagesToDelete = postImages.map((image) => ({
+            Key: image.image,
+        }));
+
+        console.log("images to delete: ", imagesToDelete);
+
+        for (const image of imagesToDelete) {
+            const params = {
+                Bucket: bucketName,
+                Key: image.Key,
+            };
+            const command = new DeleteObjectCommand(params);
+            await s3.send(command);
+        }
+
+        const post = await knex("posts").delete().where({ id: req.params.postId });
+
+        res.send({ post });
     } catch (error) {
         console.log(error);
     }
