@@ -12,9 +12,11 @@ app.use(cors());
 app.use(express.static("public")); //allows access to the public folder, where video images are stored
 
 const usersRoute = require("./routes/usersRoute");
+const postsRoute = require("./routes/postsRoute");
 
 //Routes
 app.use("/users", usersRoute);
+app.use("/posts", postsRoute);
 
 app.listen(PORT, () => {
     console.log(`Express server listening on port ${PORT}`);
