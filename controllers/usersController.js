@@ -110,12 +110,20 @@ exports.getPosts = async (req, res) => {
 //POST endpoint to create user post
 exports.createPost = async (req, res) => {
     const images = req.files;
+    req.body.imageInfo = JSON.parse(req.body.imageInfo);
+    const postInfo = {
+        title: req.body.title,
+        description: req.body.description,
+        id: uuidv4(),
+        user_id: req.params.userId,
+    };
     try {
-        req.body.id = uuidv4();
-        req.body.user_id = req.params.userId;
+        // req.body.id = uuidv4();
+        // req.body.user_id = req.params.userId;
 
         console.log(req.files);
-        console.log(req.body);
+        console.log("req.body: ", req.body.imageInfo);
+        console.log(postInfo);
         // console.log(req.params.userId);
 
         const filenames = [];
@@ -128,6 +136,7 @@ exports.createPost = async (req, res) => {
                 ContentType: file.mimetype,
             };
             filenames.push(params.Key);
+
             return s3.send(new PutObjectCommand(params));
         });
 
@@ -135,19 +144,18 @@ exports.createPost = async (req, res) => {
 
         await Promise.all(promises);
         console.log("filenames: ", filenames);
-        await knex("posts").insert(req.body);
+        await knex("posts").insert(postInfo);
 
-        // const imageRecordss = images.map((image) => ({
-        //     id: uuidv4(),
-        //     image: `/images/${image.filename}`,
-        //     post_id: req.body.id,
-        // }));
-
-        const imageRecords = filenames.map((filename) => ({
+        //will need to change this to a for loop so that i can add the imageInfo since filenames is an array as well
+        const imageRecords = filenames.map((filename, index) => ({
             id: uuidv4(),
             image: filename,
-            post_id: req.body.id,
+            title: req.body.imageInfo[index].imgTitle,
+            latitude: req.body.imageInfo[index].imgLat,
+            longitude: req.body.imageInfo[index].imgLong,
+            post_id: postInfo.id,
         }));
+        console.log("image records:", req.body);
         await knex("post_images").insert(imageRecords);
 
         res.status(201).send("records created");
