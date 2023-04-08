@@ -15,6 +15,7 @@ const s3 = new S3Client({
     region: bucketRegion,
 });
 
+//GET endpoint to get 5 recent posts
 exports.getRecentPosts = async (req, res) => {
     try {
         const result = await knex("posts")
@@ -23,7 +24,9 @@ exports.getRecentPosts = async (req, res) => {
                 "posts.title",
                 "posts.description",
                 "posts.user_id",
-                knex.raw("JSON_ARRAYAGG(post_images.image) as imageNames")
+                knex.raw(
+                    "JSON_ARRAYAGG(JSON_OBJECT('image', post_images.image, 'title', post_images.title, 'description', post_images.description, 'latitude', post_images.latitude, 'longitude', post_images.longitude)) as imageInfo"
+                )
             )
             .leftJoin("post_images", "posts.id", "post_images.post_id")
             .groupBy("posts.id")
@@ -32,10 +35,10 @@ exports.getRecentPosts = async (req, res) => {
 
         for (const post of result) {
             const imageUrls = [];
-            for (const imageName of post.imageNames) {
+            for (const imageInfo of post.imageInfo) {
                 const getObjectParams = {
                     Bucket: bucketName,
-                    Key: imageName,
+                    Key: imageInfo.image,
                 };
                 const command = new GetObjectCommand(getObjectParams);
                 const url = await getSignedUrl(s3, command, { expiresIn: 60 });
