@@ -1,26 +1,22 @@
 module.exports = [
     {
         id: "134875ee-e638-4dea-9857-40f861c9774c",
-        title: "this is a title1",
-        description: "this is a description1",
+        title: "My time in Croatia!",
+        description:
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
         user_id: "174875ee-e638-4dea-9857-40f861c9774c",
     },
     {
         id: "144875ee-e638-4dea-9857-40f861c9774c",
-        title: "this is a title2",
-        description: "this is a description2",
+        title: "My time in Turkey!",
+        description:
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
         user_id: "174875ee-e638-4dea-9857-40f861c9774c",
     },
     {
-        id: "154875ee-e638-4dea-9857-40f861c9774c",
-        title: "this is a title3",
-        description: "this is a description3",
+        id: "154875ef-e638-4dea-9857-40f861c9774c",
+        title: "Car shoot for a friend",
+        description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, et dolore magna aliqua.",
         user_id: "184875ee-e638-4dea-9857-40f861c9774c",
-    },
-    {
-        id: "164875ee-e638-4dea-9857-40f861c9774c",
-        title: "this is a title4",
-        description: "this is a description4",
-        user_id: "194875ee-e638-4dea-9857-40f861c9774c",
     },
 ];

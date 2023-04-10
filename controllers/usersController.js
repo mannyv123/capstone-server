@@ -77,7 +77,7 @@ exports.getPosts = async (req, res) => {
                 "posts.description",
                 "posts.user_id",
                 knex.raw(
-                    "JSON_ARRAYAGG(JSON_OBJECT('image', post_images.image, 'title', post_images.title, 'description', post_images.description, 'latitude', post_images.latitude, 'longitude', post_images.longitude)) as imageInfo"
+                    "JSON_ARRAYAGG(JSON_OBJECT('image', post_images.image, 'title', post_images.title, 'latitude', post_images.latitude, 'longitude', post_images.longitude)) as imageInfo"
                 )
             )
             .leftJoin("post_images", "posts.id", "post_images.post_id")
