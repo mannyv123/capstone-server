@@ -146,7 +146,6 @@ exports.createPost = async (req, res) => {
         console.log("filenames: ", filenames);
         await knex("posts").insert(postInfo);
 
-        //will need to change this to a for loop so that i can add the imageInfo since filenames is an array as well
         const imageRecords = filenames.map((filename, index) => ({
             id: uuidv4(),
             image: filename,
