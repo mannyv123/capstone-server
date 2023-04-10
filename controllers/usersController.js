@@ -77,7 +77,7 @@ exports.getPosts = async (req, res) => {
                 "posts.description",
                 "posts.user_id",
                 knex.raw(
-                    "JSON_ARRAYAGG(JSON_OBJECT('image', post_images.image, 'title', post_images.title, 'description', post_images.description, 'latitude', post_images.latitude, 'longitude', post_images.longitude)) as imageInfo"
+                    "JSON_ARRAYAGG(JSON_OBJECT('image', post_images.image, 'title', post_images.title, 'latitude', post_images.latitude, 'longitude', post_images.longitude)) as imageInfo"
                 )
             )
             .leftJoin("post_images", "posts.id", "post_images.post_id")
@@ -146,7 +146,6 @@ exports.createPost = async (req, res) => {
         console.log("filenames: ", filenames);
         await knex("posts").insert(postInfo);
 
-        //will need to change this to a for loop so that i can add the imageInfo since filenames is an array as well
         const imageRecords = filenames.map((filename, index) => ({
             id: uuidv4(),
             image: filename,

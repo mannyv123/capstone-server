@@ -7,7 +7,6 @@ exports.up = function (knex) {
         table.uuid("id").primary();
         table.string("image").notNullable();
         table.string("title");
-        table.string("description");
         table.decimal("latitude", 9, 6);
         table.decimal("longitude", 9, 6);
         table
