@@ -41,7 +41,7 @@ exports.getRecentPosts = async (req, res) => {
                     Key: imageInfo.image,
                 };
                 const command = new GetObjectCommand(getObjectParams);
-                const url = await getSignedUrl(s3, command, { expiresIn: 60 });
+                const url = await getSignedUrl(s3, command, { expiresIn: 300 });
                 imageUrls.push(url);
             }
 
