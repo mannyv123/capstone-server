@@ -84,8 +84,11 @@ exports.getPosts = async (req, res) => {
             .groupBy("posts.id")
             .where({ user_id: req.params.userId });
 
+        console.log("result", result[0].imageInfo);
+
         for (const post of result) {
             const imageUrls = [];
+
             for (const imageInfo of post.imageInfo) {
                 const getObjectParams = {
                     Bucket: bucketName,
@@ -146,14 +149,31 @@ exports.createPost = async (req, res) => {
         console.log("filenames: ", filenames);
         await knex("posts").insert(postInfo);
 
-        const imageRecords = filenames.map((filename, index) => ({
-            id: uuidv4(),
-            image: filename,
-            title: req.body.imageInfo[index].imgTitle,
-            latitude: req.body.imageInfo[index].imgLat,
-            longitude: req.body.imageInfo[index].imgLong,
-            post_id: postInfo.id,
-        }));
+        const imageRecords = filenames.map((filename, index) => {
+            const imageRecord = {
+                id: uuidv4(),
+                image: filename,
+                post_id: postInfo.id,
+            };
+
+            if (req.body.imageInfo[index] && req.body.imageInfo[index].imgTitle) {
+                // Add the title to the image record
+                imageRecord.title = req.body.imageInfo[index].imgTitle;
+            }
+
+            if (req.body.imageInfo[index] && req.body.imageInfo[index].imgLat) {
+                // Add the latitude to the image record
+                imageRecord.latitude = req.body.imageInfo[index].imgLat;
+            }
+
+            if (req.body.imageInfo[index] && req.body.imageInfo[index].imgLong) {
+                // Add the longitude to the image record
+                imageRecord.longitude = req.body.imageInfo[index].imgLong;
+            }
+
+            return imageRecord;
+        });
+
         console.log("image records:", req.body);
         await knex("post_images").insert(imageRecords);
 
