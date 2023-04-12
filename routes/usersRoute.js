@@ -1,29 +1,17 @@
 const router = require("express").Router();
 const usersController = require("../controllers/usersController");
-const { v4: uuidv4 } = require("uuid");
 const multer = require("multer");
 
-//Multer configuration; sets where to save images, filename to save images, limits image size
-// const storage = multer.diskStorage({
-//     destination: (req, file, callback) => {
-//         callback(null, "public/images/");
-//     },
-//     filename: (req, file, callback) => {
-//         callback(null, `${uuidv4()}.${file.mimetype.split("/")[1]}`);
-//     },
-//     limits: { fieldSize: 10 * 1024 * 1024 },
-// });
-// const upload = multer({ storage });
-
+//Multer Configuration; must be added in routes before going to controller
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-router.route("/").post(upload.single("profileImg"), usersController.createUser);
-router.route("/:username").get(usersController.getUser);
+router.route("/").post(upload.single("profileImg"), usersController.createUser); //route to create new user with profile image
+router.route("/:username").get(usersController.getUser); //route to get user details
 router
     .route("/:userId/posts")
-    .get(usersController.getPosts)
-    .post(upload.array("images"), usersController.createPost);
-router.route("/:userId/posts/:postId").delete(usersController.deletePost);
+    .get(usersController.getPosts) //route to get posts for specific user
+    .post(upload.array("images"), usersController.createPost); //route to create new post for specific user
+router.route("/:userId/posts/:postId").delete(usersController.deletePost); //route to delete specific post
 
 module.exports = router;

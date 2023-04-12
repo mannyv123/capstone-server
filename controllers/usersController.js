@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
+//AWS S3 details from .env file and Configuration
 const bucketName = process.env.BUCKET_NAME;
 const bucketRegion = process.env.BUCKET_REGION;
 const accessKey = process.env.ACCESS_KEY;
@@ -19,32 +20,26 @@ const s3 = new S3Client({
 //POST endpoint to create new user
 exports.createUser = async (req, res) => {
     try {
-        //need to add validation
+        //validation to be added in future
 
-        //Add profile image to S3 bucket
+        //Create unique name for profile image and upload to S3 bucket
         const profileImageName = uuidv4();
-
         const params = {
             Bucket: bucketName,
             Key: profileImageName,
             Body: req.file.buffer,
             ContentType: req.file.mimetype,
         };
-
         await s3.send(new PutObjectCommand(params));
 
         //Add user to database
         req.body.id = uuidv4();
-
         req.body.profileImg = profileImageName;
         const result = await knex("users").insert(req.body);
         const newUserUrl = `/users/${result.id}`;
         res.status(200).location(newUserUrl).send(result);
-        console.log("file", req.file);
-        console.log("body", req.body);
-        console.log(result);
     } catch (error) {
-        res.status(400).send(`Error creating user: ${error}`); //update error code and response
+        res.status(400).send(`Error creating user: ${error}`);
         console.log(error);
     }
 };
@@ -52,24 +47,31 @@ exports.createUser = async (req, res) => {
 //GET endpoint to get user info
 exports.getUser = async (req, res) => {
     try {
+        //validation to be added in future
+
+        //Get user from database
         const result = await knex("users").where({ username: req.params.username });
 
+        //Pull profile image data from S3 and add url to result
         const getObjectParams = {
             Bucket: bucketName,
             Key: result[0].profileImg,
         };
         const command = new GetObjectCommand(getObjectParams);
         result[0].profileImgUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
-        console.log(result);
+
+        //Send user info to client
         res.status(200).send(result);
     } catch (error) {
-        res.status(400).send(`Error getting user: ${error}`); //update error code and response
+        res.status(404).send(`Error getting user info: ${error}`);
+        console.log(error);
     }
 };
 
 //GET endpoint to get user posts
 exports.getPosts = async (req, res) => {
     try {
+        //Join posts and post_images tables and filter for specific user
         const result = await knex("posts")
             .select(
                 "posts.id",
@@ -84,19 +86,17 @@ exports.getPosts = async (req, res) => {
             .groupBy("posts.id")
             .where({ user_id: req.params.userId });
 
+        //If no posts exist, return response for no posts; proceed if posts exist
         if (result[0] === undefined) {
             return res.send("no posts");
         }
 
-        console.log("result", result[0].imageInfo);
-
+        //Getting image urls from S3 for each post in database result
         for (const post of result) {
             const imageUrls = [];
-            console.log("post", post);
 
+            //Each post contains imageInfo array, which holds the name of the image to pull from S3; this will create an array of image urls for each post
             for (const imageInfo of post.imageInfo) {
-                console.log("bucketName: ", bucketName);
-                console.log("imageInfo.image", imageInfo.image);
                 const getObjectParams = {
                     Bucket: bucketName,
                     Key: imageInfo.image,
@@ -104,45 +104,36 @@ exports.getPosts = async (req, res) => {
                 const command = new GetObjectCommand(getObjectParams);
                 const url = await getSignedUrl(s3, command, { expiresIn: 300 });
                 imageUrls.push(url);
-
-                console.log("get object params: ", getObjectParams);
-                console.log("url: ", url);
             }
-
+            //Add the array of S3 urls to the post data
             post.imageUrls = imageUrls;
         }
 
-        console.log("result again: ", result);
-
+        //Send post data with image urls to client
         res.status(200).send(result);
-        console.log("result: ", result);
     } catch (error) {
-        res.status(400).send(`Error getting user posts: ${error}`); //update error code and response
+        res.status(404).send(`Error getting user posts: ${error}`);
         console.error(error);
     }
 };
 
 //POST endpoint to create user post
 exports.createPost = async (req, res) => {
-    const images = req.files;
-    req.body.imageInfo = JSON.parse(req.body.imageInfo);
+    const images = req.files; //save files to variable
+    req.body.imageInfo = JSON.parse(req.body.imageInfo); //parse image info data
+
+    //create new object for new post
     const postInfo = {
         title: req.body.title,
         description: req.body.description,
         id: uuidv4(),
         user_id: req.params.userId,
     };
+
     try {
-        // req.body.id = uuidv4();
-        // req.body.user_id = req.params.userId;
+        const filenames = []; //create empty array that will store an array of the filenames for each uploaded image
 
-        console.log(req.files);
-        console.log("req.body: ", req.body.imageInfo);
-        console.log(postInfo);
-        // console.log(req.params.userId);
-
-        const filenames = [];
-
+        //Map over each image; save each s3.send() in new promises array
         const promises = images.map((file) => {
             const params = {
                 Bucket: bucketName,
@@ -151,16 +142,16 @@ exports.createPost = async (req, res) => {
                 ContentType: file.mimetype,
             };
             filenames.push(params.Key);
-
-            return s3.send(new PutObjectCommand(params));
+            return s3.send(new PutObjectCommand(params)); //return promises that are stored as array in "promises"
         });
 
-        console.log(promises);
-
+        //Promise.all() calls each promise within promises and waits for all to resolve (all images to upload); in this way, the code is able to upload all of the images asynchronously and in parallel, rather than one at a time
         await Promise.all(promises);
-        console.log("filenames: ", filenames);
+
+        //Save new post details to database
         await knex("posts").insert(postInfo);
 
+        //Create array of image info for each file in filenames
         const imageRecords = filenames.map((filename, index) => {
             const imageRecord = {
                 id: uuidv4(),
@@ -186,11 +177,13 @@ exports.createPost = async (req, res) => {
             return imageRecord;
         });
 
-        console.log("image records:", req.body);
+        //Save array of image records to database
         await knex("post_images").insert(imageRecords);
 
+        //Send successful response
         res.status(201).send("records created");
     } catch (error) {
+        res.status(400).send(`Unable to create new post: ${error}`);
         console.log(error);
     }
 };
@@ -198,21 +191,14 @@ exports.createPost = async (req, res) => {
 //DELETE endpoint to delete user post
 exports.deletePost = async (req, res) => {
     try {
-        console.log("request body: ", req.body);
-        console.log("req.params: ", req.params);
-
-        //first find the post images in the database
+        //First find the post images in the database
         const postImages = await knex("post_images").where({ post_id: req.params.postId });
 
-        console.log("post images to delete: ", postImages);
-
-        //Delete from S3
+        //Delete from S3; create array of image names to match in S3 bucket that will be deleted
         const imagesToDelete = postImages.map((image) => ({
             Key: image.image,
         }));
-
-        console.log("images to delete: ", imagesToDelete);
-
+        //For each image name in imagesToDelete array, delete from S3
         for (const image of imagesToDelete) {
             const params = {
                 Bucket: bucketName,
@@ -222,10 +208,13 @@ exports.deletePost = async (req, res) => {
             await s3.send(command);
         }
 
+        //Delete selected post from posts table; cascades to post_images table
         const post = await knex("posts").delete().where({ id: req.params.postId });
 
-        res.send({ post });
+        //Send successful status and the deleted post
+        res.status(200).send({ post });
     } catch (error) {
+        res.status(400).send(`Unable to delete post: ${error}`);
         console.log(error);
     }
 };
