@@ -117,6 +117,8 @@ To run this project, you will need to add the following environment variables to
 
 -   Search (users, posts, tags)
 
+-   Optimize image storage and loading
+
 ## Authors
 
 -   [@mannyv123](https://github.com/mannyv123)
