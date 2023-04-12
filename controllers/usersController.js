@@ -84,12 +84,19 @@ exports.getPosts = async (req, res) => {
             .groupBy("posts.id")
             .where({ user_id: req.params.userId });
 
+        if (result[0] === undefined) {
+            return res.send("no posts");
+        }
+
         console.log("result", result[0].imageInfo);
 
         for (const post of result) {
             const imageUrls = [];
+            console.log("post", post);
 
             for (const imageInfo of post.imageInfo) {
+                console.log("bucketName: ", bucketName);
+                console.log("imageInfo.image", imageInfo.image);
                 const getObjectParams = {
                     Bucket: bucketName,
                     Key: imageInfo.image,
@@ -97,10 +104,15 @@ exports.getPosts = async (req, res) => {
                 const command = new GetObjectCommand(getObjectParams);
                 const url = await getSignedUrl(s3, command, { expiresIn: 300 });
                 imageUrls.push(url);
+
+                console.log("get object params: ", getObjectParams);
+                console.log("url: ", url);
             }
 
             post.imageUrls = imageUrls;
         }
+
+        console.log("result again: ", result);
 
         res.status(200).send(result);
         console.log("result: ", result);
