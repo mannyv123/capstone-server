@@ -2,6 +2,7 @@ const knex = require("knex")(require("../knexfile"));
 const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
+//AWS S3 details from .env file and Configuration
 const bucketName = process.env.BUCKET_NAME;
 const bucketRegion = process.env.BUCKET_REGION;
 const accessKey = process.env.ACCESS_KEY;
@@ -18,6 +19,7 @@ const s3 = new S3Client({
 //GET endpoint to get 5 recent posts
 exports.getRecentPosts = async (req, res) => {
     try {
+        //Join posts and post_images tables and filter for specific user
         const result = await knex("posts")
             .select(
                 "posts.id",
@@ -33,8 +35,11 @@ exports.getRecentPosts = async (req, res) => {
             .orderBy("posts.created_at", "posts.title")
             .limit(5);
 
+        //Getting image urls from S3 for each post in database result
         for (const post of result) {
             const imageUrls = [];
+
+            //Each post contains imageInfo array, which holds the name of the image to pull from S3; this will create an array of image urls for each post
             for (const imageInfo of post.imageInfo) {
                 const getObjectParams = {
                     Bucket: bucketName,
@@ -44,13 +49,14 @@ exports.getRecentPosts = async (req, res) => {
                 const url = await getSignedUrl(s3, command, { expiresIn: 300 });
                 imageUrls.push(url);
             }
-
+            //Add the array of S3 urls to the post data
             post.imageUrls = imageUrls;
         }
-        console.log("landing page result", result);
+
+        //Send post data with image urls to client
         res.status(200).send(result);
     } catch (error) {
-        res.status(400).send(`Error getting posts: ${error}`); //update error code and response
+        res.status(404).send(`Error getting posts: ${error}`);
         console.log(error);
     }
 };
