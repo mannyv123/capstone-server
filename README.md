@@ -44,6 +44,18 @@ Setup .env file for server
   (see .env.sample file)
 ```
 
+Migrate tables
+
+```bash
+  npx knex migrate:latest
+```
+
+Seed data
+
+```bash
+  npx knex seed:run
+```
+
 Start the server
 
 ```bash
