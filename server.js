@@ -8,7 +8,11 @@ const PORT = process.env.PORT || 5001;
 
 //Middleware
 app.use(express.json());
-app.use(cors());
+app.use(
+    cors({
+        origin: "https://collections-capstone.netlify.app",
+    })
+);
 app.use(express.static("public")); //allows access to the public folder, where video images are stored
 
 const usersRoute = require("./routes/usersRoute"); //route for user related endpoints
