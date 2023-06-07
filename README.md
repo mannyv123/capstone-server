@@ -1,4 +1,4 @@
-# Collections
+# Collections (Capstone Project)
 
 Collections is a platform for professional and amateur photographers to showcase their work through albums (called "Collections"). Users can create collections that show under their profile. The platform provides a supportive community for photographers to connect and grow their audience.
 
